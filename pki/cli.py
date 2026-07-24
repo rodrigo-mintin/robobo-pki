@@ -47,7 +47,11 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command", help="Available subcommands")
 
     subparsers.add_parser("init-ca", help="Initialize or load the Root CA", parents=[parent_parser])
-    subparsers.add_parser("generate", help="Generate Root CA, fleet certificates, keystores, and manifest", parents=[parent_parser])
+    gen_parser = subparsers.add_parser("generate", help="Generate Root CA, fleet certificates, keystores, and manifest", parents=[parent_parser])
+    gen_parser.add_argument("--force-robots", action="store_true", help="Re-sign/regenerate all robot certificates while preserving the existing Root CA")
+    gen_parser.add_argument("--force-ca", action="store_true", help="Force regenerate Root CA certificate and key")
+    gen_parser.add_argument("-f", "--force", action="store_true", help="Force regenerate Root CA and all robot certificates")
+
     subparsers.add_parser("rebuild-keystore", help="Rebuild PKCS#12 keystores and manifest from existing files", parents=[parent_parser])
     subparsers.add_parser("export-bks", help="Export or convert PKCS#12 bundle to Android BKS keystore format", parents=[parent_parser])
     subparsers.add_parser("list", help="List fleet identities, certificates, and status", parents=[parent_parser])
@@ -73,7 +77,13 @@ def main(args: list[str] | None = None) -> None:
     if cmd == "init-ca":
         init_ca_command(config, paths)
     elif cmd == "generate":
-        generate_pki(config, paths)
+        generate_pki(
+            config,
+            paths,
+            force=getattr(parsed, "force", False),
+            force_ca=getattr(parsed, "force_ca", False),
+            force_robots=getattr(parsed, "force_robots", False),
+        )
     elif cmd == "rebuild-keystore":
         rebuild_keystores_command(config, paths)
     elif cmd == "export-bks":

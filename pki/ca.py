@@ -132,7 +132,7 @@ def create_root_ca(config, paths) -> RootCA:
 
             x509.KeyUsage(
 
-                digital_signature=False,
+                digital_signature=True,
 
                 content_commitment=False,
 

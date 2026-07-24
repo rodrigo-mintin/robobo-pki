@@ -289,15 +289,15 @@ def _build_certificate(
         )
 
         #
-        # Key Usage
+        # Key Usage (EC / ECDSA compliant)
         #
         .add_extension(
             x509.KeyUsage(
                 digital_signature=True,
                 content_commitment=False,
-                key_encipherment=True,
+                key_encipherment=False,
                 data_encipherment=False,
-                key_agreement=False,
+                key_agreement=True,
                 key_cert_sign=False,
                 crl_sign=False,
                 encipher_only=False,
@@ -335,12 +335,14 @@ def _build_certificate(
         )
 
         #
-        # Subject Alternative Names
+        # Subject Alternative Names (full hostname + short hostname)
         #
-        .add_extension(
-            x509.SubjectAlternativeName([
-                x509.DNSName(robot_hostname),
-            ]),
+        san_dns = [x509.DNSName(robot_hostname)]
+        if robot_hostname.endswith(".local"):
+            san_dns.append(x509.DNSName(robot_hostname[:-6]))
+
+        builder = builder.add_extension(
+            x509.SubjectAlternativeName(san_dns),
             critical=False,
         )
     )

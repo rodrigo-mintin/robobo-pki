@@ -53,7 +53,13 @@ def init_ca_command(config: FleetConfig, paths: ProjectPaths, force: bool = Fals
     return root_ca
 
 
-def generate_pki(config: FleetConfig, paths: ProjectPaths, force: bool = False) -> Fleet:
+def generate_pki(
+    config: FleetConfig,
+    paths: ProjectPaths,
+    force: bool = False,
+    force_ca: bool = False,
+    force_robots: bool = False,
+) -> Fleet:
     """
     Main orchestration entrypoint for generating the Robobo PKI.
     Idempotently creates Root CA, robot certificates, PKCS#12 keystores, and manifest.
@@ -61,14 +67,17 @@ def generate_pki(config: FleetConfig, paths: ProjectPaths, force: bool = False) 
     print_header("Initializing PKI Generation")
     paths.ensure_directories()
 
-    root_ca = load_or_create_root_ca(config, paths, force=force)
+    ca_force = force or force_ca
+    robots_force = force or force_robots
+
+    root_ca = load_or_create_root_ca(config, paths, force=ca_force)
 
     robots = list(expand_patterns(config.robots))
     print_header(f"Processing Fleet ({len(robots)} robot identities)")
 
     robot_certs: List[RobotCertificate] = []
     for robot in robots:
-        cert = load_or_create_robot_certificate(robot, root_ca, config, paths, force=force)
+        cert = load_or_create_robot_certificate(robot, root_ca, config, paths, force=robots_force)
         robot_certs.append(cert)
 
     fleet = Fleet(root_ca=root_ca, certificates=robot_certs)
