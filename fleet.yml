@@ -1,0 +1,20 @@
+ca:
+  common_name: Robobo Root CA
+  organization: Universidad de A Coruña
+  country: ES
+  years_valid: 50
+
+certificates:
+  validity_years: 50
+
+server:
+  prefix: rob-
+  suffix: .local
+  port: 44304
+
+keystore:
+  filename: robobo-identities.p12
+
+robots:
+  - 7{B,C,V,9}*
+  - 5{5,6}*

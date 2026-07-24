@@ -1,0 +1,15 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Pytest
+.pytest_cache/
+
+# Output directory and generated keys, certs, keystores, and passwords
+output/
+*.p12
+*.bks
+*.key
+*.crt
+keystore_password.txt
