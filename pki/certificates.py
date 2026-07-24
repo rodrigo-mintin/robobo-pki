@@ -6,18 +6,15 @@ Generation and loading of robot certificates.
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from cryptography import x509
-from cryptography.hazmat.primitives.asymmetric import ec
-
-from datetime import datetime, timedelta, timezone
-
-from cryptography import x509
 from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509.oid import (
-    NameOID,
     ExtendedKeyUsageOID,
+    NameOID,
 )
 
 
@@ -242,6 +239,10 @@ def _build_certificate(
         ),
     ])
 
+    san_dns = [x509.DNSName(robot_hostname)]
+    if robot_hostname.endswith(".local"):
+        san_dns.append(x509.DNSName(robot_hostname[:-6]))
+
     builder = (
         x509.CertificateBuilder()
 
@@ -337,11 +338,7 @@ def _build_certificate(
         #
         # Subject Alternative Names (full hostname + short hostname)
         #
-        san_dns = [x509.DNSName(robot_hostname)]
-        if robot_hostname.endswith(".local"):
-            san_dns.append(x509.DNSName(robot_hostname[:-6]))
-
-        builder = builder.add_extension(
+        .add_extension(
             x509.SubjectAlternativeName(san_dns),
             critical=False,
         )
@@ -365,8 +362,8 @@ def verify_robot_certificate(
         nvb = cert.not_valid_before_utc
         nva = cert.not_valid_after_utc
     except AttributeError:
-        nvb = cert.not_valid_before
-        nva = cert.not_valid_after
+        nvb = cert.not_valid_before.replace(tzinfo=timezone.utc)
+        nva = cert.not_valid_after.replace(tzinfo=timezone.utc)
 
     if now < nvb:
         return False, f"Certificate not yet valid (valid from {nvb})"
@@ -405,6 +402,6 @@ def days_until_expiration(cert: x509.Certificate) -> int:
     try:
         nva = cert.not_valid_after_utc
     except AttributeError:
-        nva = cert.not_valid_after
+        nva = cert.not_valid_after.replace(tzinfo=timezone.utc)
 
     return (nva - now).days
