@@ -59,7 +59,5 @@ public class ExampleUsage {
             e.printStackTrace();
         }
     }
-
-    }
 }
 
