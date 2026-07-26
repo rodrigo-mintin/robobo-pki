@@ -173,10 +173,6 @@ class ProjectPaths:
         return self.output / "robobo-identities.p12"
 
     @property
-    def bks_keystore(self) -> Path:
-        return self.output / "robobo-certs.bks"
-
-    @property
     def keystore_password(self) -> Path:
         return self.output / "keystore_password.txt"
 

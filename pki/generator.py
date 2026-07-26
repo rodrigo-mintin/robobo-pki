@@ -16,7 +16,7 @@ from pki.certificates import (
     verify_robot_certificate,
 )
 from pki.config import FleetConfig
-from pki.keystore import build_keystores, export_bks_command
+from pki.keystore import build_keystores
 from pki.manifest import generate_manifest
 from pki.models import (
     Fleet,
@@ -88,9 +88,6 @@ def generate_pki(
 
     print_header("Generating Manifest")
     generate_manifest(fleet, config, paths)
-
-    print_header("Exporting BKS Keystore & Helper Scripts")
-    export_bks_command(config, paths)
 
     print_header("PKI Generation Complete")
     print_success(f"Successfully processed Root CA and {len(robot_certs)} robot certificate(s).")

@@ -6,15 +6,21 @@ import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 
 /**
- * Example demonstrating how to load a Robobo BKS keystore and manifest in Android
- * to dynamically select identity keys for specific fleet robots (e.g., "7VH" -> "rob-7vh").
+ * Example demonstrating how to load Robobo raw assets (.p12 identity and Root CA .crt) natively in Android
+ * to dynamically select identity keys for specific fleet robots (e.g., "7VH" -> "rob-7vh")
+ * without BKS overhead or external dependencies.
  */
 public class ExampleUsage {
 
-    public void connectToRobot(
+    /**
+     * Connect to a Robobo robot using direct PKCS#12 (.p12) identity and Root CA (.crt) streams.
+     * Place your `.p12` and `ca.crt` files directly into Android `res/raw/` or `assets/`.
+     */
+    public void connectToRobotWithRawAssets(
             InputStream manifestStream,
-            InputStream bksStream,
-            char[] keystorePassword,
+            InputStream p12Stream,
+            InputStream caCertStream,
+            char[] p12Password,
             String robotId
     ) {
         try {
@@ -29,10 +35,11 @@ public class ExampleUsage {
             RoboboManifest.RobotInfo robotInfo = manifest.getRobotInfo(robotId);
             System.out.println("Connecting to robot " + robotInfo.id + " (" + robotInfo.hostname + ") at " + robotInfo.url);
 
-            // 2. Initialize SSLContext using BKS keystore and target robot identity alias
-            SSLContext sslContext = SSLContextFactory.createSSLContextFromBks(
-                    bksStream,
-                    keystorePassword,
+            // 2. Initialize SSLContext natively using PKCS#12 and CA cert streams (No BKS required!)
+            SSLContext sslContext = SSLContextFactory.createSSLContextFromP12(
+                    p12Stream,
+                    p12Password,
+                    caCertStream,
                     robotId,
                     manifest
             );
@@ -52,4 +59,7 @@ public class ExampleUsage {
             e.printStackTrace();
         }
     }
+
+    }
 }
+

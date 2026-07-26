@@ -1,14 +1,12 @@
 """
 keystore.py
 
-Build PKCS#12 identities for every robot and combined keystores, plus BKS export helpers.
+Build PKCS#12 identities for every robot and combined keystores.
 """
 
 from __future__ import annotations
 
 import secrets
-import shutil
-import subprocess
 from pathlib import Path
 
 from cryptography.hazmat.primitives.serialization import (
@@ -115,122 +113,3 @@ def build_keystores(
     print_success(f"Saved keystore password to '{paths.keystore_password.name}'.")
 
     return password
-
-
-def _find_keytool() -> str | None:
-    kt = shutil.which("keytool")
-    if kt:
-        return kt
-
-    search_dirs = [
-        Path(r"C:\Program Files\Java"),
-        Path(r"C:\Program Files\Android\Android Studio\jbr\bin"),
-        Path("/usr/lib/jvm"),
-        Path("/usr/java"),
-    ]
-    for d in search_dirs:
-        if d.exists():
-            if d.is_file() and d.name.lower() in ("keytool", "keytool.exe"):
-                return str(d)
-            for kt_file in d.glob("**/keytool*"):
-                if kt_file.is_file() and kt_file.name.lower() in ("keytool", "keytool.exe"):
-                    return str(kt_file)
-    return None
-
-
-BCPROV_URL = "https://repo1.maven.org/maven2/org/bouncycastle/bcprov-jdk18on/1.78.1/bcprov-jdk18on-1.78.1.jar"
-
-
-def _find_or_download_bcprov_jar(paths: ProjectPaths, custom_provider_path: str | Path | None = None) -> Path | None:
-    if custom_provider_path and Path(custom_provider_path).exists():
-        return Path(custom_provider_path)
-
-    target_jar = paths.output / "bcprov-jdk18on.jar"
-    if target_jar.exists() and target_jar.stat().st_size > 0:
-        return target_jar
-
-    cache_dirs = [
-        paths.root,
-        paths.output,
-        Path.home() / ".m2" / "repository",
-        Path.home() / ".gradle" / "caches",
-    ]
-    for cd in cache_dirs:
-        if cd.exists():
-            for f in cd.glob("**/bcprov*.jar"):
-                if f.is_file() and f.stat().st_size > 0:
-                    return f
-
-    try:
-        import urllib.request
-        print_info("BouncyCastle provider jar not found locally. Downloading bcprov-jdk18on.jar...")
-        paths.ensure_directories()
-        urllib.request.urlretrieve(BCPROV_URL, target_jar)
-        if target_jar.exists() and target_jar.stat().st_size > 0:
-            print_success(f"Downloaded BouncyCastle provider jar to {target_jar.name}")
-            return target_jar
-    except Exception as e:
-        print_info(f"Could not download BouncyCastle provider jar: {e}")
-
-    return None
-
-
-def export_bks_command(
-    config: FleetConfig,
-    paths: ProjectPaths,
-    provider_path: str | Path | None = None,
-) -> bool:
-    """
-    Exports/converts all individual robot PKCS#12 keystores into a single combined BKS keystore (robobo-certs.bks) for Android devices.
-    """
-    keytool = _find_keytool()
-    bks_file = paths.bks_keystore
-    password = get_or_generate_keystore_password(config, paths)
-    bcprov_jar = _find_or_download_bcprov_jar(paths, provider_path)
-
-    print_info(f"Target BKS File: {bks_file.name}")
-
-    p12_files = sorted(list(paths.pkcs12.glob("*.p12")))
-
-    # Remove intermediate script files if present
-    script_sh = paths.output / "export_bks.sh"
-    script_bat = paths.output / "export_bks.bat"
-    script_sh.unlink(missing_ok=True)
-    script_bat.unlink(missing_ok=True)
-
-    if keytool and bcprov_jar and bcprov_jar.exists():
-        print_info(f"Importing {len(p12_files)} fleet identities into {bks_file.name}...")
-        if bks_file.exists():
-            try:
-                bks_file.unlink()
-            except Exception:
-                pass
-
-        success_count = 0
-        for p12_path in p12_files:
-            cmd = [
-                keytool,
-                "-importkeystore",
-                "-srckeystore", str(p12_path),
-                "-srcstoretype", "PKCS12",
-                "-destkeystore", str(bks_file),
-                "-deststoretype", "BKS",
-                "-providerclass", "org.bouncycastle.jce.provider.BouncyCastleProvider",
-                "-providerpath", str(bcprov_jar),
-                "-noprompt",
-            ]
-            if password:
-                cmd.extend(["-srcstorepass", password, "-deststorepass", password])
-
-            res = subprocess.run(cmd, capture_output=True, text=True)
-            if res.returncode == 0:
-                success_count += 1
-            else:
-                print_info(f"keytool import notice for {p12_path.name}: {res.stderr.strip()}")
-
-        if success_count > 0:
-            set_secure_permissions(bks_file)
-            print_success(f"Successfully created BKS keystore '{bks_file.name}' containing {success_count} fleet identities.")
-            return True
-
-    return True

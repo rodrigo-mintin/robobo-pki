@@ -19,7 +19,6 @@ from pki.generator import (
     rebuild_keystores_command,
     verify_pki_command,
 )
-from pki.keystore import export_bks_command
 from pki.models import ProjectPaths
 
 
@@ -53,7 +52,6 @@ def build_parser() -> argparse.ArgumentParser:
     gen_parser.add_argument("-f", "--force", action="store_true", help="Force regenerate Root CA and all robot certificates")
 
     subparsers.add_parser("rebuild-keystore", help="Rebuild PKCS#12 keystores and manifest from existing files", parents=[parent_parser])
-    subparsers.add_parser("export-bks", help="Export or convert PKCS#12 bundle to Android BKS keystore format", parents=[parent_parser])
     subparsers.add_parser("list", help="List fleet identities, certificates, and status", parents=[parent_parser])
     subparsers.add_parser("verify", help="Cryptographically verify Root CA and robot certificates", parents=[parent_parser])
 
@@ -86,8 +84,6 @@ def main(args: list[str] | None = None) -> None:
         )
     elif cmd == "rebuild-keystore":
         rebuild_keystores_command(config, paths)
-    elif cmd == "export-bks":
-        export_bks_command(config, paths)
     elif cmd == "list":
         list_fleet_command(config, paths)
     elif cmd == "verify":
