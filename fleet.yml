@@ -16,8 +16,4 @@ keystore:
   filename: robobo-identities.p12
 
 robots:
-  - 5**
-  - 6**
-  - 7**
-  - 9**
-  - W**
+  - "[012567VW][1234679BCDFGHJKLMNPQRSTVW][0123456789BCDFGHJKLMNPQRSTVWXYZ]"
